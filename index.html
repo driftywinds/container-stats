@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Container Stats</title>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <style>
+    :root {
+      --primary: #3b82f6;
+      --primary-dark: #2563eb;
+
+      --light-background: #f9fafb;
+      --light-surface: #ffffff;
+      --light-text: #111827;
+      --light-muted: #6b7280;
+      --light-border: #e5e7eb;
+
+      --dark-background: #121212;
+      --dark-surface: #1e1e1e;
+      --dark-text: #e0e0e0;
+      --dark-muted: #9e9e9e;
+      --dark-border: #2c2c2c;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 2em 1em;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      min-height: 100vh;
+      transition: background 0.3s ease, color 0.3s ease;
+    }
+
+    body.light {
+      background: var(--light-background);
+      color: var(--light-text);
+    }
+
+    body.dark {
+      background: var(--dark-background);
+      color: var(--dark-text);
+    }
+
+    .container {
+      background: var(--light-surface);
+      color: var(--light-text);
+      padding: 2em;
+      border-radius: 16px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06);
+      max-width: 500px;
+      width: 100%;
+      box-sizing: border-box;
+      transition: all 0.3s ease-in-out;
+    }
+
+    body.dark .container {
+      background: var(--dark-surface);
+      color: var(--dark-text);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+    }
+
+    h2 {
+      text-align: center;
+      font-size: 1.75em;
+      margin-bottom: 1.25em;
+      color: var(--primary-dark);
+    }
+
+    select, input, button {
+      font-size: 1rem;
+      padding: 0.8em;
+      margin-bottom: 1em;
+      width: 100%;
+      border-radius: 10px;
+      border: 1px solid;
+      box-sizing: border-box;
+      transition: border 0.2s, box-shadow 0.2s;
+    }
+
+    body.light select,
+    body.light input {
+      background: #fff;
+      color: var(--light-text);
+      border-color: var(--light-border);
+    }
+
+    body.dark select,
+    body.dark input {
+      background: #1e293b;
+      color: var(--dark-text);
+      border-color: var(--dark-border);
+    }
+
+    select:focus, input:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
+    }
+
+    button {
+      background-color: var(--primary);
+      color: #fff;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+
+    button:hover {
+      background-color: var(--primary-dark);
+    }
+
+    #ghcr-token {
+      display: none;
+    }
+
+    #output {
+      margin-top: 1.5em;
+      padding: 1em;
+      background: #f1f5f9;
+      border-radius: 12px;
+      border: 1px solid var(--light-border);
+      font-size: 0.95em;
+      word-break: break-word;
+    }
+
+    body.dark #output {
+      background: #1e293b;
+      border: 1px solid var(--dark-border);
+    }
+
+    #output strong {
+      display: inline-block;
+      width: 140px;
+      color: var(--light-muted);
+    }
+
+    body.dark #output strong {
+      color: var(--dark-muted);
+    }
+
+    .description-box {
+      margin-top: 1.5em;
+      background: #e2e8f0;
+      border: 1px solid #cbd5e1;
+      border-radius: 10px;
+      padding: 1em;
+    }
+
+    body.dark .description-box {
+      background: #334155;
+      border-color: #475569;
+    }
+
+    .description-box h3 {
+      margin-top: 0;
+      color: #1e3a8a;
+    }
+
+    body.dark .description-box h3 {
+      color: #93c5fd;
+    }
+
+    .theme-toggle {
+      text-align: right;
+      margin-bottom: 1em;
+      font-size: 0.9em;
+    }
+
+    .theme-toggle button {
+      background: none;
+      border: 1px solid;
+      border-radius: 999px;
+      padding: 0.5em 1em;
+      color: inherit;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+
+    body.light .theme-toggle button {
+      border-color: var(--light-border);
+    }
+
+    body.dark .theme-toggle button {
+      border-color: var(--dark-border);
+    }
+
+    @media (max-width: 540px) {
+      .container {
+        padding: 1.5em 1.2em;
+      }
+
+      #output strong {
+        width: 100%;
+        margin-bottom: 0.2em;
+      }
+
+      #output p {
+        margin-bottom: 0.8em;
+      }
+    }
+  </style>
+</head>
+<body class="dark">
+  <div class="container">
+    <div class="theme-toggle">
+      <button onclick="toggleTheme()">Switch to Light Mode</button>
+    </div>
+    <h2>Container Stats Viewer</h2>
+    <select id="registry" onchange="toggleTokenField()">
+      <option value="dockerhub">Docker Hub</option>
+      <option value="ghcr">GitHub Container Registry (GHCR)</option>
+    </select>
+    <input type="text" id="ghcr-token" placeholder="GitHub Token (only for GHCR)" />
+    <input type="text" id="owner" placeholder="Repo Owner Username" />
+    <input type="text" id="repo" placeholder="Repo Name" />
+    <button onclick="getStats()">Get Stats</button>
+    <div id="output"></div>
+  </div>
+
+  <script>
+    function formatBytes(bytes) {
+      const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+      if (bytes === 0) return '0 Bytes';
+      const i = Math.floor(Math.log(bytes) / Math.log(1024));
+      return parseFloat((bytes / Math.pow(1024, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+
+    function formatDate(dateString) {
+      const date = new Date(dateString);
+      return date.toLocaleString();
+    }
+
+    function toggleTokenField() {
+      const registry = document.getElementById('registry').value;
+      const tokenInput = document.getElementById('ghcr-token');
+      tokenInput.style.display = registry === 'ghcr' ? 'block' : 'none';
+    }
+
+    async function fetchGHCRStats(owner, repo, token) {
+      const headers = {
+        'Authorization': `Bearer ${token}`,
+        'Accept': 'application/vnd.github+json'
+      };
+
+      const urls = [
+        `https://api.github.com/users/${owner}/packages/container/${repo}`,
+        `https://api.github.com/orgs/${owner}/packages/container/${repo}`
+      ];
+
+      for (const url of urls) {
+        const res = await fetch(url, { headers });
+        if (res.ok) {
+          const pkg = await res.json();
+          let entries = Object.entries(pkg)
+            .filter(([key]) => !['owner', 'repository'].includes(key))
+            .map(([key, value]) => {
+              if (["last_updated", "last_modified", "date_registered", "created_at", "updated_at"].includes(key)) {
+                value = formatDate(value);
+              }
+              if (key === 'full_description') {
+                return `<div class="description-box"><h3>Description</h3>${marked.parse(value)}</div>`;
+              }
+              return `<p><strong>${key}:</strong> ${typeof value === 'object' ? JSON.stringify(value) : value}</p>`;
+            });
+
+          let totalSize = 0;
+          if (pkg.package_version?.container?.tags?.length) {
+            const versionsUrl = `${url}/versions`;
+            const versionsRes = await fetch(versionsUrl, { headers });
+            if (versionsRes.ok) {
+              const versions = await versionsRes.json();
+              totalSize = versions.reduce((sum, v) => sum + (v.metadata?.container?.size || 0), 0);
+              entries.push(`<p><strong>storage_size:</strong> ${formatBytes(totalSize)}</p>`);
+            }
+          }
+
+          return entries.join('');
+        }
+      }
+
+      throw new Error('Package not found or access denied.');
+    }
+
+    async function getStats() {
+      const registry = document.getElementById('registry').value;
+      const owner = document.getElementById('owner').value.trim();
+      const repo = document.getElementById('repo').value.trim();
+      const token = document.getElementById('ghcr-token').value.trim();
+      const output = document.getElementById('output');
+
+      if (!owner || !repo || (registry === 'ghcr' && !token)) {
+        output.innerHTML = '<p style="color:red;">Please fill in all fields.</p>';
+        return;
+      }
+
+      output.innerHTML = 'Fetching...';
+
+      try {
+        if (registry === 'dockerhub') {
+          const encodedUrl = encodeURIComponent(`https://hub.docker.com/v2/repositories/${owner}/${repo}`);
+          const proxyUrl = `https://api.allorigins.win/get?url=${encodedUrl}`;
+
+          const res = await fetch(proxyUrl);
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+          const json = await res.json();
+          const data = JSON.parse(json.contents);
+
+          const display = Object.entries(data).map(([key, val]) => {
+            if (key === 'storage_size') val = formatBytes(val);
+            if (["last_updated", "last_modified", "date_registered"].includes(key)) val = formatDate(val);
+            if (key === 'full_description') {
+              return `<div class="description-box"><h3>Description</h3>${marked.parse(val)}</div>`;
+            }
+            return `<p><strong>${key}:</strong> ${typeof val === 'object' ? JSON.stringify(val) : val}</p>`;
+          });
+
+          output.innerHTML = display.join('');
+
+        } else if (registry === 'ghcr') {
+          const display = await fetchGHCRStats(owner, repo, token);
+          output.innerHTML = display;
+        }
+      } catch (err) {
+        output.innerHTML = `<p style="color:red;">Failed to fetch data. ${err.message}</p>`;
+      }
+    }
+
+    document.addEventListener('keydown', function (event) {
+      if (event.key === 'Enter') {
+        getStats();
+      }
+    });
+
+    function toggleTheme() {
+      const body = document.body;
+      const button = document.querySelector('.theme-toggle button');
+      body.classList.toggle('dark');
+      body.classList.toggle('light');
+      const newMode = body.classList.contains('dark') ? 'Dark' : 'Light';
+      button.textContent = `Switch to ${newMode === 'Dark' ? 'Light' : 'Dark'} Mode`;
+    }
+  </script>
+</body>
+</html>
